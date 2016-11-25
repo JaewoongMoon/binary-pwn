@@ -1,0 +1,67 @@
+* Basic Assembler Debugging with GDB
+# http://dbp-consulting.com/tutorials/debugging/basicAsmDebuggingGDB.html
+
+** Who is this for?
+   This article is aimed straight at people who will be doing debugging with gdb on a linux box. 
+   There will be information useful in general to anyone that debugs in C/C++ and needs to drop
+   down to assembler, but the tools and information are definately linux-centric. The assembler
+   language used will be x86 with AT&T syntax. I assume you know C and or C++, that you can 
+   understand hexadecimal numbers, that you can run things from the command line, that you have a normal 
+   development environment using GNU tools installed, and many other things. In other words this is an 
+   intermediate level, not beginner level tutorial. Additionally this is not intended to teach you the things
+   you would need to know to rite assembler, but rather the things you would need to understand you see
+   in the debugger.
+
+** Our first program to debug is in assembler!
+   Every executable file on a linux system must have a symbol named _start.
+   That's the place that the system will hand control to in the program. 
+   We use .globl _start as a signal to the assembler and the loader that this will be a globally visible symbol,
+   and then we place _start: in the program. Something that ends with a colon, (:), is called a symbol, and this
+   one will be exported by the loader because we said it was global. 
+   It will refer to the address of whatever comes right after the declaration of the symbol. In this case,
+   the next thing after _start:is movl $1, %eax, an instruction to tell the processor to move the value 1 
+   into the %eax register. The address of that instruction will be associated with the global symbol _start:.
+
+   All this program will do is call the linux system call #1 which says to exit with the status value in
+   register %ebx. That's why we have the line movl $0xff, %ebx. It moves the literal value 0xff(255) into %ebx.
+   Finally we call interrupt number 128, (in hexadecimal 0x80), which is handled by the operating system handler
+   for that interrupt. That handler does system calls for you. It's the interface between programs and the operating
+   system. 
+
+** Let's build it and run it. 
+   Save a copy of the program as exit.s, and we'll assemble and link it. 
+   The assembler argument --gstabs+ tells the assembler that we want it to save debugging information that will let
+   gdb print the line of assembler source code that corresponds to each assembler instruction. Run it and check that
+   the return code is really returned to use like this. 
+
+** Now let's run it in the debugger
+   gdb ./exit tell the system to run gdb and to tell it that the program we want it to debug is exit. 
+   It starts up and tells us that it's done reading symbols from our program and give us the gdb comannd prompt, (gdb)
+   Being kind obliging folks, we give gdb a command, b _start, which tells gdb that we want it to put a breakpoint at
+   the address with the symbol _start associated with it.
+
+
+** The preamble - On Entering A Function This You Will Do
+   According to the C calling convention, the first thing to do upon entry to a function is to save %ebp, the caller's 
+   base pointer, by pushing it onto the stack. Then the next thing is to copy the stack pointer into the base pointer
+   so that you can find your arguments after the stack pointer changes. After that you would adjust your stack to make
+   room for any locals, but main doesn't have any so you don't see that here. 
+
+** Calling another fucntion
+   So in a minute we're going to call add, so we need to push its arguments on to the stack. 
+   The convention says that when calling a function you push its arguments onto the stack in reverse order. 
+   Go ahead and click the button and watch them get pushed onto the stack. Each time something gets pushed on the stack,
+   the stack pinter first moves down in memory, and then the item is moved to that memory location.
+   The stack pointer always points at the last thing that got pushed. For simplicity, everything in this program that goes
+   on the stack is 4 bytes long, so each slot you see is a 4 byte slot. It's also possible to pushw for 2byte values,
+   and pushb for one byte values. It's also important to remember that the stack grows downward in memory.
+
+** Entering add -Preamble again
+   In the new function we save main's %ebp. Now we can copy our stack pointer into %ebp.
+   Now %ebp functions as our base pointer and we can access our arguments above in the stack with positive offsets, 
+   and we can access locals (there will be one for the local a) with negative offsets. Next we add 4 to our stack pointer 
+   to make room for a. 
+
+
+
+

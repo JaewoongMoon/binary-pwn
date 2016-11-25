@@ -1,0 +1,106 @@
+* Linux x86 Program Start Up or - How the heck do we get to main?
+
+
+** But first, how do we get to _start?
+When you run a program, the shell or gui calls execve() which executes the linux 
+system call execve(). If you want more information about execve() then you can
+simply type man execve from your shell. It will come from section 2 of main where
+all the system calls are. To summarize, it will set up a stack for you, and push 
+onto it argc, argv, and envp. The file descriptors 0, 1, and 2, (stdin, stdout, 
+stderr), are left to whatever the shell set them to. The loader doest mush work
+for you setting up your relocations, and as we'll see much later, calling your
+preinitializers. When everything is ready, control is handed to your program by
+calling _start().
+
+** _start is, oddly enough, where we start
+xor %ebp, %ebp 
+# xor of anything with itself sets it to zero. so the xor %ebp, %ebp sets %ebp to 
+# zero. This is suggested by the ABI (Application Binary Interface specification),
+# to mark the outermost frame. 
+
+pop %rsi
+# Next we pop off the top of the stack. On entry we have argc, argv and envp 
+# on the stack, so the pop makes argc go into %esi.
+# We're just going to save it and push it back on the stack in a minute.
+# Since we popped off argc, %esp is now pointing at argv. 
+
+mov %rsp, %rdx
+# The mov puts argv into %rdx without moving the stack pointer. 
+
+and    $0xfffffffffffffff0,%rsp
+# Then we and the stack pointer with a mask that clears off the bottom four bits. 
+# Depending on where the stack pointer was it will move it lower, by 0 to 15 bytes.
+# In any case it will make it aligned on an even multiple of 16 bytes.
+# This alignment is done so that all of the stack variables are likey to be nicely
+# aligned for memory and cache efficiency, in particular, this is required for SSE
+# (Streaming SIMD Extensions), instructions that can work on vectors of single 
+# precision floating point simultaneously. 
+# In a particular run, the %esp was 0xbffff770 on entry to _start. 
+# After we popped argc off the stack, %esp was 0xbffff774. 
+# It moved up to a higher address (putting things on the stack moves down in memory,
+# taking thing off moves up in memory). After the and the stack pointer is back at
+# 0xbffff770. 
+
+
+** Now set up for calling __libc_start_main
+So now we start pushing arguments for __libc_start_main onto the stack. 
+The first one, %eax is garbage pushed onto the stack just because 7 things are
+going to be pushed on the stack and they needed an 8th one to keep the 16-byte
+alignment. It's never used for anything. __libc_start_main is linked in from glibc. 
+In the source tree for glibc, it lives in csu/libc-start.c
+__libc_start_main is specified like
+
+int __libc_start_main ( 
+int (*main) (int, char * *, char * *),int argc, char * * ubp_av, 
+void (*init) (void), void (*fini) (void),void (*rtld_fini) (void), 
+void (* stack_end)
+);
+So we expect _start to push those arguments on the stack in reverse order
+before the call to __libc_start_main. 
+| value     | __libc_start_main arg   | content                                      |
+|-----------+-------------------------+----------------------------------------------|
+| $eax      | Don't know.             | Don't care                                   |
+| $esp      | void (*stack_end)       | Our alined stack pointer.                    |
+| $edx      | void (*rtld_fini)(void) | Destructor of dynamic linker from loader     |
+|           |                         | passed in %edx                               |
+|           |                         | Registered by __libc_start_main with         |
+|           |                         | __cxat_exit()                                |
+|           |                         | to call the FINI for dynamic libraries       |
+|           |                         | that got loaded before us.                   |
+| 0x8048400 | void (*fini)(void)      | __libc_csu_fini - Destructor of this program |
+|           |                         | Registered by __libc_start_main with         |
+|           |                         | _cxat_exit().                                |
+| 0x80483a0 | void (*init)(void)      | __libc_csu_init, Constructor of this program |
+|           |                         | Called by __libc_start_main before main.     |
+| %ecx      | char **ubp_av           | argv off of the stack.                       |
+| %esi      | arcg                    | argc off of the stack.                       |
+| 0x8048394 | int (*main)(int char**, | main of our program called by __libc_start_  |
+|           | char**)                 | main. Return value of main is passed to      |
+|           |                         | exit() which terminates our program.         |
+
+__libc_csu_fini is linked into our code from glibc, and lives in the source tree
+int csu/elf-init.c. It's our program's C level destructor, and I'll look at it
+later in the white paper. 
+
+
+** _libc_start_main in general
+That's about as much as I'm going to get into the nitty-gritty details of how
+__libc_start_main, but in general, it
+
+- Takes care of some security problems with setuid setgid programs
+- Starts up threading
+- Registers the fini (our program), and rtld_fini (run-time loader) arguments to get
+  run by at_exit to run the program's and the loader's cleanup routines
+- Calls the init argument
+- Calls the main with the argc and argv arguments passed to it and with the global
+  __environ argument as detailed above. 
+- Calls exit with the return value of main. 
+
+** Calling the init argument
+The init argument, to __libc_start_main, is set to __libc_csu_init which is also
+linked into our code. It's compiled from a C program which lives in the glibc source
+tree in csu/elf-init.c and linked into our program. The C code is similar to
+(but with a lot more #ifdefs),
+
+
+
