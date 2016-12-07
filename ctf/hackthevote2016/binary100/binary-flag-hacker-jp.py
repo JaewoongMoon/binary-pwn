@@ -40,7 +40,7 @@ def findFlags(hex_arr, gaparr):
     for i in range(0, len(gaparr)-2):
         if gaparr[i] != None and gaparr[i+1] != None and gaparr[i+2] != None:
             if gaparr[i] == 6 and gaparr[i+1] == -11 and gaparr[i+2] == 6:
-                print("플래그로 추정되는 위치를 찾았습니다!")
+                print("フラグに推測される位置を探しました!")
                 flag = getFlagString(hex_arr, i) 
                 print (flag)
     
@@ -51,10 +51,10 @@ def findFlags(hex_arr, gaparr):
 # start_index : f 문자가 시작되는자리.
 def getFlagString(hex_arr, start_index):
     # 1) diff 를 구한다. (첫 인덱스의 자리의 바이트 값과 아스키 코드 f 값의 차이)
-    print("%d 인덱스에서부터 찾습니다." % start_index)
+    print("%d 位置から探します。" % start_index)
     start_val = int(hex_arr[start_index],16)
     diff =  0x66 - start_val
-    print("diff는 %d로 추정됩니다..." % diff)
+    print("diffは%dに推測されます。" % diff)
     start_point_val = start_val + diff 
     # print("start 지점 값 : %s" % chr(start_point_val) )
 
@@ -67,7 +67,7 @@ def getFlagString(hex_arr, start_index):
     for i in range(start_index, len(hex_arr)):
         if (int(hex_arr[i],16) + diff) == search:
             end_index = i
-            print("플래그가 종료되는 위치를 찾았습니다. %d 인덱스까지 찾습니다. " % end_index)      
+            print("フラグが終わる位置を探しました。 %d 位置までさがします。 " % end_index)      
             break
 
     # 3) 추정 값을 생성하고 리턴한다.
@@ -75,7 +75,7 @@ def getFlagString(hex_arr, start_index):
     if end_index != 0:
         for i in range(start_index, end_index + 1):
             ascii = (int(hex_arr[i],16) + diff)%256 # 아스키 코드 범위내 변환
-            print ("%d 's ascii: %d" % (i, ascii))
+            #print ("%d 's ascii: %d" % (i, ascii))
             c = chr(ascii) # 결과 값 문자로 변환
             estims.append(c)
         
