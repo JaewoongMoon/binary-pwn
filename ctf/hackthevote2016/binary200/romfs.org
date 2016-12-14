@@ -1,0 +1,17 @@
+* ROMFS - ROM FILE SYSTEM
+This is a quite dumb, read only filesystem, mainly for initial RAS disks of installation disks.
+It has grown up by the need of having modules linked at boot time. Using this filesystem,
+you get a very similar feature, and even the possibility of a small kernerl, with a file 
+system which doesn't take up useful memory from the router functions in the basement of 
+your office. 
+
+The first eight bytes identify the filesystem, even for the casual inspector. 
+After that, in the 3rd longword, it contains the number of bytes accessible from the start
+of this filesystem. 
+
+여기에서는 0x0b8340 이다. 16진수로 변환하면?
+-> 754,496 bytes
+
+The 4th longword is the checksum of the first 512 bytes (or the number of bytes accessible,
+whichever is smaller). The applied algorithm is the same as in the AFFS filesystem, namely
+a simple sum of the longwords 

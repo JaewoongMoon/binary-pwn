@@ -1,0 +1,30 @@
+#!/bin/sh
+
+#Set our hostname
+/bin/hostname openipcam
+
+#Mount all the folders we need
+mount -t proc none /proc
+mount -t ramfs none /usr
+mount -t ramfs none /swap
+mount -t ramfs none /var
+mount -t ramfs none /etc
+mount -t ramfs none /flash
+mount -t ramfs none /home
+
+/bin/mkdir /var/config
+/bin/mkdir /var/log
+/bin/mkdir /var/run
+/bin/mkdir /var/lock
+/bin/mkdir /var/ftp
+/bin/chmod 777 /var/ftp
+
+#Run our init shell
+/bin/sh
+
+#/bin/ifconfig lo 127.0.0.1
+#/bin/route add -net 127.0.0.0 netmask 255.255.255.0 lo
+
+# eth0 en dhcp 
+#/bin/ifconfig eth0 up
+
