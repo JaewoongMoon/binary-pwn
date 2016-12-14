@@ -1,3 +1,6 @@
+#include <string.h>
+#include <stdlib.h>
+
 void overflow_function (char *str)
 {
 	char buffer[20];
@@ -7,7 +10,7 @@ void overflow_function (char *str)
 
 int main()
 {
-	char big_strting[128];
+	char big_string[128];
 	int i;
 
 	for (i=0; i< 128; i++){
