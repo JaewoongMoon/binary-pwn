@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # 바이너리 파일의 바이트 배열이 "flag{" 라는 문자열로 이루어져 있을 가능성이 큰 부분을 찾는다. 
 import binascii
-filename='/root/binary-pwn/ctf/hackthevote2016/binary100/consul.dcdcdac48cdb5ca5bc1ec29ddc53fb554d814d12094ba0e82f84e0abef065711'
+filename='/Users/jwmoon/binary-pwn/ctf/hackthevote2016/binary100/consul.dcdcdac48cdb5ca5bc1ec29ddc53fb554d814d12094ba0e82f84e0abef065711'
 
 def main():
     hex_bytes = readBytesFromFile(filename)
